@@ -49,61 +49,60 @@ volatile uint16_t distance; //max difference, volume level
 volatile int system; //holds current state of system
 void initSystem(void) {
 	system = 0;
-		ALARM = OFF;
+	ALARM = OFF;
 }
 
 
 
-	int bState = UP ;
-	int bCounter = 0 ;
+int bState = UP ;
+int bCounter = 0 ;
 void buttonTask (void) {
 
 
-		//osDelay(10) ;
-		//waitSysTickCounter(10) ;
-		switch (bState) {
-			case UP:
-				if (isPressed()) {
-					bCounter = 0 ;
-					bState = DOWNBOUNCE ;
-				}
-				break ;
-			case DOWN:
-				if (!isPressed()) {
-					bCounter = 0 ;
-					bState = UPBOUNCE ;
-				}
-				break ;
-			case UPBOUNCE:
-				if (isPressed()) {
-					bState = DOWN ;
-				} else {
-					if (bCounter > BOUNCE) {
-						bState = UP ;
-					} else {
-						bCounter++ ;
-					}
-				}
-				break ;
-			case DOWNBOUNCE:
-				if (isPressed()) {
-					if (bCounter > BOUNCE) {
-						bState = DOWN ;
-						
-						//switch state so that we perform 
-						//detectObjectTask() meaning system is armed 
-						//and give an audible confirmation
-							system = ARMED;
-						
-							ALARM = ON; 
-						//later, add functionality for OFF alarm
-					} else {
-						bCounter++ ;
-					}
-				} else {
+	//osDelay(10) ;
+	//waitSysTickCounter(10) ;
+	switch (bState) {
+		case UP:
+			if (isPressed()) {
+				bCounter = 0 ;
+				bState = DOWNBOUNCE ;
+			}
+			break ;
+		case DOWN:
+			if (!isPressed()) {
+				bCounter = 0 ;
+				bState = UPBOUNCE ;
+			}
+			break ;
+		case UPBOUNCE:
+			if (isPressed()) {
+				bState = DOWN ;
+			} else {
+				if (bCounter > BOUNCE) {
 					bState = UP ;
+				} else {
+					bCounter++ ;
 				}
-				break ;
+			}
+			break ;
+		case DOWNBOUNCE:
+			if (isPressed()) {
+				if (bCounter > BOUNCE) {
+					bState = DOWN ;
+						
+					//switch state so that we perform 
+					//detectObjectTask() meaning system is armed 
+					//and gives an audible confirmation
+					system = ARMED;
+					ALARM = ON; 
+					//later, add functionality for OFF alarm
+				} else {
+					bCounter++ ;
+				}
+			} else {
+				bState = UP ;
+			}
+			break ;
 		}
 }
 
@@ -117,23 +116,23 @@ volatile int measurementNo;
 void detectObjectTask(void) {
 measurementNo = 0; 
 distanceMeasurement = 0;
-		if (system) {
+	if (system) {
 			
-			//number of measurements and take avg when done
-			while (measurementNo < 7) {
-				MeasureVoltageDiff();
+		//number of measurements and take avg when done
+		while (measurementNo < 7) {
+			MeasureVoltageDiff();
 
-				// scale to an actual voltage, assuming VREF accurate
-    				measured_voltage_diff = ((double) VREF * difference) / (double) ADCRANGE ;
+			// scale to an actual voltage, assuming VREF accurate
+    			measured_voltage_diff = ((double) VREF * difference) / (double) ADCRANGE ;
 			
-				distanceMeasurement += measured_voltage_diff;
-				measurementNo++;
-			}
-			final_measured_voltage_diff = distanceMeasurement / (double) measurementNo;
-			
-			transformNow = 1;
-			systemOn=0;
+			distanceMeasurement += measured_voltage_diff;
+			measurementNo++;
 		}
+		final_measured_voltage_diff = distanceMeasurement / (double) measurementNo;
+			
+		transformNow = 1;
+		systemOn=0;
+	}
 }
 
 
@@ -147,26 +146,25 @@ distanceMeasurement = 0;
 
  *------------------------------------------------------------*/
 void transform(void) {
-	
-	
-		if (transformNow) {
-			if(final_measured_voltage_diff < 0.00005016 ) {
-				distance = 1;
-			} else if (final_measured_voltage_diff < 0.00005018) {
-				distance = 4;
-			} else if (final_measured_voltage_diff < 0.00005018) {
-				distance = 8;
-			} else if (final_measured_voltage_diff < 0.00005020) {
-				distance = 12;
-			} else if (final_measured_voltage_diff < 0.00005021) {
-				distance = 16;
-			} else if (final_measured_voltage_diff < 0.000050217) {
-				distance = 18;
-			} else {
-			//final_measured_voltage_diff > 0.00005022
-				distance = 21;
-			}
+
+	if (transformNow) {
+		if(final_measured_voltage_diff < 0.00005016 ) {
+			distance = 1;
+		} else if (final_measured_voltage_diff < 0.00005017) {
+			distance = 4;
+		} else if (final_measured_voltage_diff < 0.00005018) {
+			distance = 8;
+		} else if (final_measured_voltage_diff < 0.00005019) {
+			distance = 12;
+		} else if (final_measured_voltage_diff < 0.00005020) {
+			distance = 16;
+		} else if (final_measured_voltage_diff < 0.00005021) {
+			distance = 18;
+		} else {
+		//final_measured_voltage_diff > 0.00005022
+			distance = 21;
 		}
+	}
 }
 
 /*------------------------------------------------------------
@@ -183,45 +181,45 @@ void alarmTask(void) {
             
     switch(distance) {
       case 1:
-				setTimer(0, 20978) ;
-						PTB->PCOR = MASK(GREEN_LED_POS) ;
-				startTimer(0) ;
-			setPWMDuty(128) ;     // 64 is 50% volume
-         	                       // Max is 128; off is 0
-       break;
-			case 4:
-				setTimer(0, 22097) ;
-				startTimer(0) ;
-				setPWMDuty(115) ;
-				break;
-			case 8:
-				setTimer(0, 24297) ;
-				startTimer(0) ;
-				setPWMDuty(95) ;
-				break;
-			case 12:
-				setTimer(0, 25742) ;
-				startTimer(0) ;
-				setPWMDuty(70) ;
-				break;
-			case 16:
-				setTimer(0, 27273) ;
-				startTimer(0) ;
-				setPWMDuty(55) ;
-				break;
-			case 18:
-				setTimer(0, 40863) ;
-				startTimer(0) ;
-				setPWMDuty(30) ;
-				break;
-			case 21:
-				setTimer(0, 45867) ;
-				startTimer(0) ;
-				setPWMDuty(15) ;
-				break;
-       		}
+		setTimer(0, 20978) ;
+		PTB->PCOR = MASK(GREEN_LED_POS) ;
+		startTimer(0) ;
+		setPWMDuty(128) ;     // 64 is 50% volume
+        	                       // Max is 128; off is 0
+       		break;
+       case 4:
+		setTimer(0, 22097) ;
+		startTimer(0) ;
+		setPWMDuty(115) ;
+		break;
+	case 8:
+		setTimer(0, 24297) ;
+		startTimer(0) ;
+		setPWMDuty(95) ;
+		break;
+	case 12:
+		setTimer(0, 25742) ;
+		startTimer(0) ;
+		setPWMDuty(70) ;
+		break;
+	case 16:
+		setTimer(0, 27273) ;
+		startTimer(0) ;
+		setPWMDuty(55) ;
+		break;
+	case 18:
+		setTimer(0, 40863) ;
+		startTimer(0) ;
+		setPWMDuty(30) ;
+		break;
+	case 21:
+		setTimer(0, 45867) ;
+		startTimer(0) ;
+		setPWMDuty(15) ;
+		break;
+       	}
         
-    	}
+    }
     
 }
 
@@ -242,7 +240,7 @@ int main (void) {
 	while (calibrationFailed) ; // block progress if calibration failed
 	Init_ADC() ; // Reinitialise ADC
     configurePIT(0) ;
-    setTimer(0, 45867) ; // Frequency for MIDI 60 - middle C
+    setTimer(0, 45867) ; // Frequency
                         // One octave up is 22934
     configureTPM0forPWM() ;
 	Init_SysTick(1000) ; // initialse SysTick every 1ms
